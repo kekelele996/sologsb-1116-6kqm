@@ -59,13 +59,13 @@ sologsb-1116/
 │   ├── nginx.conf              # try_files 前端路由回落 + gzip
 │   ├── public/favicon.svg
 │   └── src/
-│       ├── types/              # record.ts / spore.ts / point.ts / identify.ts / index.ts
-│       ├── stores/             # recordStore / sporeStore / pointStore / identifyStore（Zustand）
+│       ├── types/              # record.ts / spore.ts / point.ts / identify.ts / batch.ts / index.ts
+│       ├── stores/             # recordStore / sporeStore / pointStore / identifyStore / batchStore（Zustand）
 │       ├── components/common/  # SporePrintSwatch / TraitsSummary / GillAttachmentTag / GeoPointForm
 │       ├── hooks/              # usePersistentStore / useCandidateMatch
-│       ├── pages/              # AtlasPage / RecordDetailPage / PointsPage / IdentifyPage / ComparePage
+│       ├── pages/              # AtlasPage / RecordDetailPage / BatchesPage / BatchDetailPage / PointsPage / IdentifyPage / ComparePage
 │       ├── router/index.ts
-│       └── utils/              # spore.ts / export.ts / id.ts
+│       └── utils/              # spore.ts / export.ts / batch.ts / id.ts
 ```
 
 ## 五、数据模型与存储
@@ -76,9 +76,11 @@ sologsb-1116/
 | SporePrint 孢子印 | 印色、印形、获取时长、观察日期、样本干湿度 | `spores` |
 | CollectPoint 采集点 | 地点名、经纬度、海拔、植被类型、基物、伴生树种、日期、采集人 | `points` |
 | IdentifyLog 鉴定结论 | 结论学名、依据、参考图鉴与页码、置信度、是否待复核、复核人 | `identifies` |
+| CollectBatch 采集批次 | 批次编号（唯一）、负责人、起止日期、计划采集点列表、计划调整留痕 | `batches` |
 
 - 数据库名 `gbfungiguide`，`meta` 表保存 `schemaVersion`；
 - `version(2)` 升级迁移会为历史条目补齐「菌肉变色反应」默认值（不变色）；
+- `version(3)` 新增「采集批次」表；从批次移出采集点只改批次计划并写调整留痕，采集点、条目、孢子印与鉴定数据全部保留；
 - 数据仅存于浏览器本地，容器无状态、不挂载命名卷。
 
 ## 六、主要页面
@@ -87,6 +89,8 @@ sologsb-1116/
 | --- | --- |
 | `/atlas` | 图谱总览：网格卡片展示菌盖形态要点、孢子印色块与鉴定状态，按印色/着生方式筛选并新建条目 |
 | `/atlas/:id` | 条目详情：形态描述分区折叠、孢子印观察登记、采集点编辑（含坐标校验）、鉴定留痕 |
+| `/batches` | 采集批次：建批次时填编号、负责人、起止日期并勾选计划采集点，编号重复与日期倒置当场拦截；卡片展示各批次缺孢子印/缺鉴定/待复核统计与收齐进度 |
+| `/batches/:id` | 批次详情：按计划采集点归拢条目，逐条标注缺孢子印、缺鉴定、待复核；移出采集点仅调整本批次计划并留痕，原数据保留 |
 | `/points` | 采集点管理：经纬度格式校验、条目数与主要基物统计、删除前校验下级条目 |
 | `/identify` | 鉴定工作页：左侧勾选形态特征与印色，右侧实时给出候选名录排序，确认后落鉴定结论 |
 | `/compare` | 条目对比：并排最多 3 条，逐项对照菌盖/菌褶菌管/孢子印差异并高亮 |
