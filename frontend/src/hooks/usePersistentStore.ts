@@ -1,22 +1,23 @@
 import { onUnmounted, reactive } from 'vue'
 import type { StoreApi } from 'zustand/vanilla'
 import Dexie, { type Table } from 'dexie'
-import type { CollectPoint, FungusRecord, IdentifyLog, SporePrint } from '@/types'
+import type { CollectBatch, CollectPoint, FungusRecord, IdentifyLog, SporePrint } from '@/types'
 
 /** IndexedDB 数据结构版本号 */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export interface MetaRow {
   key: string
   value: number
 }
 
-/** Dexie 封装：条目 / 孢子印 / 采集点 / 鉴定结论 四张表 + 元数据表 */
+/** Dexie 封装：条目 / 孢子印 / 采集点 / 鉴定结论 / 采集批次 五张表 + 元数据表 */
 class FungiGuideDb extends Dexie {
   records!: Table<FungusRecord, string>
   spores!: Table<SporePrint, string>
   points!: Table<CollectPoint, string>
   identifies!: Table<IdentifyLog, string>
+  batches!: Table<CollectBatch, string>
   meta!: Table<MetaRow, string>
 
   constructor() {
@@ -29,7 +30,7 @@ class FungiGuideDb extends Dexie {
       meta: 'key'
     })
     // v2：新增「菌肉变色反应」字段，迁移时为历史条目补齐默认值（不变色）
-    this.version(SCHEMA_VERSION)
+    this.version(2)
       .stores({
         records: 'id, code, pointId, attachment, capShape',
         spores: 'id, recordId, color, observeDate',
@@ -47,6 +48,15 @@ class FungiGuideDb extends Dexie {
             }
           })
       })
+    // v3：新增「采集批次」表，批次只持有计划采集点的 id 引用，不复制下级数据
+    this.version(SCHEMA_VERSION).stores({
+      records: 'id, code, pointId, attachment, capShape',
+      spores: 'id, recordId, color, observeDate',
+      points: 'id, name, substrate, vegetation',
+      identifies: 'id, recordId, conclusion, date',
+      batches: 'id, code, leader, startDate, endDate',
+      meta: 'key'
+    })
   }
 }
 
@@ -87,7 +97,9 @@ export async function seedDemoData(): Promise<void> {
   const count = await db.points.count()
   if (count > 0) return
 
-  const today = new Date().toISOString().slice(0, 10)
+  const now = Date.now()
+  const today = new Date(now).toISOString().slice(0, 10)
+  const dayAgo = new Date(now - 2 * 24 * 3600 * 1000).toISOString().slice(0, 10)
 
   await db.points.bulkPut([
     {
@@ -188,6 +200,30 @@ export async function seedDemoData(): Promise<void> {
       collectDate: today,
       collector: '祁野',
       note: '生于倒木侧面，质地木栓化'
+    },
+    {
+      id: 'rec_004',
+      code: 'BHS-2026-003',
+      tempName: '黄柄小菇（暂定）',
+      fruitBodyCount: 5,
+      pointId: 'pt_bhs',
+      capDiameter: 2.4,
+      capShape: '钟形',
+      capMargin: '全缘',
+      capTexture: '粘滑',
+      fleshThickness: 0.2,
+      fleshReaction: '不变色',
+      attachment: '离生',
+      gillDensity: '中等',
+      stipeLength: 5.6,
+      stipeDiameter: 0.4,
+      ring: '无菌环',
+      volva: '无菌托',
+      odor: '无明显气味',
+      hostTree: '辽东栎',
+      collectDate: today,
+      collector: '沈禾',
+      note: '刚回站，孢子印与鉴定都还没做'
     }
   ])
 
@@ -245,6 +281,19 @@ export async function seedDemoData(): Promise<void> {
       needReview: false,
       reviewer: '祁野',
       date: today
+    }
+  ])
+
+  await db.batches.bulkPut([
+    {
+      id: 'bt_demo_01',
+      code: 'BHS-2026-A',
+      leader: '沈禾',
+      startDate: dayAgo,
+      endDate: today,
+      note: '秋季栎树林样线复查，重点补孢子印',
+      pointIds: ['pt_bhs', 'pt_yls'],
+      createdAt: new Date(now - 3 * 24 * 3600 * 1000).toISOString()
     }
   ])
 }

@@ -21,6 +21,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '采集点管理' }
   },
   {
+    path: '/batches',
+    name: 'batches',
+    component: () => import('@/pages/BatchesPage.vue'),
+    meta: { title: '采集批次' }
+  },
+  {
+    path: '/batches/:id',
+    name: 'batch-detail',
+    component: () => import('@/pages/BatchDetailPage.vue'),
+    meta: { title: '批次详情' }
+  },
+  {
     path: '/identify',
     name: 'identify',
     component: () => import('@/pages/IdentifyPage.vue'),

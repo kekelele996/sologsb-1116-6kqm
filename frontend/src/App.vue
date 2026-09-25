@@ -6,16 +6,19 @@ import { recordStore } from '@/stores/recordStore'
 import { sporeStore } from '@/stores/sporeStore'
 import { pointStore } from '@/stores/pointStore'
 import { identifyStore } from '@/stores/identifyStore'
+import { batchStore } from '@/stores/batchStore'
 
 const route = useRoute()
 const recordState = useStore(recordStore)
 const sporeState = useStore(sporeStore)
 const pointState = useStore(pointStore)
 const identifyState = useStore(identifyStore)
+const batchState = useStore(batchStore)
 
 const menus = [
   { path: '/atlas', label: '图谱总览', icon: 'Grid' },
   { path: '/points', label: '采集点管理', icon: 'Location' },
+  { path: '/batches', label: '采集批次', icon: 'Calendar' },
   { path: '/identify', label: '鉴定工作页', icon: 'Search' },
   { path: '/compare', label: '条目对比', icon: 'Files' }
 ]
@@ -26,6 +29,7 @@ const stats = computed(() => [
   { label: '条目', value: recordState.records.length },
   { label: '孢子印', value: sporeState.spores.length },
   { label: '采集点', value: pointState.points.length },
+  { label: '采集批次', value: batchState.batches.length },
   { label: '鉴定留痕', value: identifyState.logs.length }
 ])
 
@@ -34,6 +38,7 @@ onMounted(async () => {
   await sporeStore.getState().hydrate()
   await pointStore.getState().hydrate()
   await identifyStore.getState().hydrate()
+  await batchStore.getState().hydrate()
 })
 </script>
 
